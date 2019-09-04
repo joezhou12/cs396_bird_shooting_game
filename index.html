@@ -1,0 +1,373 @@
+<!--CS396 Project4--> 
+<!--Yichun Zhou--> 
+<!--Due 12/05/2018--> 
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<style>
+canvas {
+    background-color: #f1f1f1;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+}
+div{
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+    text-align: center;
+}
+div > button{
+    font-size: 20px;
+    margin: 5px;
+    padding: 5px;
+    background: mediumorchid;
+    border: none;
+    color: white;
+}
+</style>
+</head>
+<body onload="startGame()">
+    <div style="margin-bottom:10px;"> <span style="font-size:28px;"> Bird Shooting Game  </span> </div>
+<script>
+
+// global variables
+var cannonGun;
+var bgImg;
+var myBird;
+var isDown = false;     //check mouse click 
+var gameMessage = "Game Over!";    
+var timeRemaining = 0;     
+
+function startGame() {
+    //component function(width, height, image, x, y, flipable boolean)
+    cannonGun = new component(50, 50, "cannon.png", 270, 200, false);
+    //defalut starting angle
+    cannonGun.r = 90;
+    timeRemaining = 60;
+    myBird = new component(50,50, "Frame-1.png", 50 , 30, true);
+    //bird moving speed easy = 3
+    //medium 3 x 2 = 6 
+    //hard 6 x 2 = 12
+    myBird.speedX = 3;
+    bgImg = new component(656, 270, "game_bg.jpg", 0, 0, false);
+    GameObj.start();
+    GameObj.canvas.onmousedown = function(e){handleMouseDown(e);};
+    GameObj.canvas.onmousemove = function(e){handleMouseMove(e);};
+    GameObj.canvas.onmouseup = function(e){handleMouseUp(e);};
+}
+
+//mouse pressed
+function handleMouseDown(e){
+    isDown=true;
+}
+
+function handleMouseMove(e){
+    if(!isDown){return;}
+    GameObj.mouseX=parseInt(e.clientX -GameObj.offsetX );
+    GameObj.mouseY=parseInt(e.clientY -GameObj.offsetY );
+}
+
+function handleMouseUp(e){
+    isDown = false;    
+}
+
+//game object
+var GameObj = {
+    canvas : document.createElement("canvas"),  
+    start : function() {
+        this.canvas.width = 600;
+        this.canvas.height = 270;
+        this.context = this.canvas.getContext("2d");
+        document.body.insertBefore(this.canvas, document.body.childNodes[2]);   //insert canvas
+        this.interval = setInterval(updateGameArea, 20);    //update game area
+        //fire with out mouse press, velocity of x&y
+        this.vx = Math.cos(90 - (Math.PI/2)) * 2 * -1; 
+        this.vy = Math.sin(90 - (Math.PI/2)) * 2; 
+        this.shoot = false;     //check key press
+        this.shooter;
+        
+        this.numberOfCannons = 10; 
+        this.score = 0;  
+        // calculate hit
+        this.canvasOffset= this.canvas.getBoundingClientRect();
+        this.offsetX= this.canvasOffset.left;
+        this.offsetY= this.canvasOffset.top;
+        this.cx = this.canvas.width /2;
+        this.cy = this.canvas.height /2;
+
+        //check key press
+        document.body.onkeyup = function(e){
+            GameObj.shoot = true;    
+        }
+    },
+    // clear game board
+    clear : function() {
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    },
+    stop : function() {    //game over, show screen
+        clearInterval(this.interval);
+        this.context.save();
+        this.context.fillStyle = "red";
+        this.context.globalAlpha = 0.3;
+        this.context.fillRect(0,0,this.canvas.width,this.canvas.height);
+        this.context.globalAlpha = 1;
+        this.context.textAlign = 'center';
+        this.context.fillStyle = "white";
+        this.context.font="bold 28px Verdana";
+        timeUsed = parseInt(60 - timeRemaining);
+        timeUsed += 1;  //need one more second
+        this.context.fillText(gameMessage,this.canvas.width/2,this.canvas.height/2 - 40);
+        this.context.fillText("Time Used : " + timeUsed + "s",this.canvas.width/2,this.canvas.height/2 );
+        this.context.fillText("Score : " + this.score,this.canvas.width/2,this.canvas.height/2 + 40);
+        
+        this.context.restore();
+        
+    }
+}
+
+//component function(width, height, image, x, y, flipable boolean)
+function component(width, height, color, x, y, flipAble) {
+    this.image = new Image();
+    this.image.src = color;
+    this.width = width;
+    this.height = height;
+    this.speedX = 0;
+    this.speedY = 0;
+    this.flipAble = flipAble;
+    this.flippedImage = "";
+    
+    this.x = x;
+    this.y = y;
+    this.r = 0;
+    this.cx = this.x + this.width * 0.5;   
+    this.cy = this.y + this.height * 0.5;   
+    offX = GameObj.canvas.offsetLeft;
+    offY = GameObj.canvas.offsetTop;
+    
+    // this.animate = false;  
+    // this.cache;
+    // this.frame = 0;
+    // this.animationImages = ['Frame-'];
+    // this.animationImagesFliped = [];
+    // this.animation;
+    // this.imageCache;
+    // if(flipAble){   
+    //     this.flippedImage = "fliped.png";
+    //     this.animationImagesFliped = ['fliped'];
+    
+    //hit animation
+    this.animate = false;  
+    this.cache;
+    this.frame = 0;
+    this.animationImages = ['Frame-1.png','Frame-2.png','Frame-3.png','Frame-4.png'];
+    this.animationImagesFliped = [];
+    
+    this.animation;
+    this.imageCache;
+    if(flipAble){   //bird flipable
+        this.flippedImage = "fliped.png";
+        this.animationImagesFliped = ['fliped.png','fliped1.png','fliped2.png','fliped3.png'];
+    }
+
+    this.update = function() {  
+        ctx = GameObj.context;  //canvas context
+        ctx.save();
+        //check angle
+        if(this.r != 0){   
+            w = this.image.width/2;
+            h = this.image.height/2;
+            ctx.translate(this.cx, this.cy) ;
+            ctx.rotate(this.r);
+            ctx.drawImage(this.image,
+            0, 
+            0,
+            this.image.width , this.image.height , -w/2, -h/2 ,w,h);    
+            ctx.restore();
+        }
+        else{   //no angle
+            ctx.drawImage(this.image, 
+            this.x, 
+            this.y,
+            this.width, this.height);
+            ctx.restore();
+        }            
+    }
+    
+    //hit animation
+    this.animateHit = function(){
+        this.cache = this.speedX;
+        this.speedX = 0;
+        this.imageCache = this.image;
+        this.frame = 0;
+        countImage = 1;
+        this.animation = setInterval(function () {
+            img = new Image();
+            myBird.frame += countImage;
+            if(myBird.cache < 0){
+                img.src = myBird.animationImagesFliped[myBird.frame];
+            }
+            else{
+                img.src = myBird.animationImages[myBird.frame];
+            }
+            myBird.image = img;
+            if(myBird.frame >= 3 || myBird.frame <= 0 ){
+                countImage *= -1;
+            }
+
+        },30);
+        setTimeout(this.endAnimation, 1000);
+    }
+
+    this.endAnimation = function(){
+        myBird.image = myBird.imageCache;
+        myBird.speedX = myBird.cache;
+        clearInterval(myBird.animation);    
+    }
+
+
+    this.newPos = function() {  
+        if(this.x + 100 > GameObj.canvas.width){    //close to edge, flip bird
+            this.speedX *= -1;
+            temp = this.image.src;
+            this.image.src = this.flippedImage;
+            this.flippedImage = temp;
+        }
+        else if(this.x < 50){  
+            this.speedX *= -1;
+            temp = this.image.src;
+            this.image.src = this.flippedImage;
+            this.flippedImage = temp;
+        }
+        this.x += this.speedX;  //speed at x axis
+        this.y += this.speedY;  //speed at y axis = 0
+    }   
+    
+}
+
+// function updateGameArea() {
+//     GameObj.clear(); 
+//     bgImg.update(); 
+//     if (GameObj.mouseX && GameObj.mouseY) {    
+//         var dx= GameObj.mouseX;   
+//         var dy= GameObj.mouseY;  
+//         r=Math.atan2(dy,dx);   
+//         var vy = Math.cos(r) * 2;  
+//         var vx = Math.sin(r) * 2;
+//     }
+
+function updateGameArea() {
+    GameObj.clear();    //canvas clear
+    bgImg.update(); 
+    if (GameObj.mouseX && GameObj.mouseY) {     //mouse xy
+        var dx= GameObj.mouseX - cannonGun.x;   //set up x, y
+        var dy= GameObj.mouseY- cannonGun.y;    
+        r=Math.atan2(dy,dx);    //angle
+        var vy = Math.cos(r - (Math.PI/2)) * 2;   
+        var vx = Math.sin(r - (Math.PI/2)) * 2;
+        GameObj.vx = vx * -1;
+        GameObj.vy = vy;
+        cannonGun.r = r;    //save angle of cannon
+    }
+
+    if(GameObj.shoot){        //key pressed
+        if(!GameObj.shooter) { 
+            speedx = GameObj.vx;
+            speedy = GameObj.vy;
+            vx = cannonGun.x;
+            vy = cannonGun.y;
+            GameObj.shooter = setInterval(function () {
+                if(vx < 0 || vx > GameObj.canvas.width || vy < 0 || vy > GameObj.canvas.height){    //cannon ball goes off
+                    clearInterval(GameObj.shooter);
+                    GameObj.shoot = false;
+                    GameObj.shooter = undefined;
+                    if(GameObj.numberOfCannons < 1 ){   //check fired 10
+                        GameObj.stop();
+                        return ;
+                    }
+                }
+                ctx = GameObj.context;
+                vx -= speedx *1.5;
+                vy -= speedy *1.5;
+                var cannonBall = new component(40, 40, "cannon_ball.png", vx, vy, "image", false);
+                cannonBall.update();
+                if(collides(cannonBall, myBird)){   //if hit
+                    clearInterval(GameObj.shooter);  
+                    myBird.animateHit();
+                    GameObj.shooter = undefined;
+                    GameObj.score ++;   //add score 
+                    if(GameObj.numberOfCannons < 1 ){   //cheack fired 10
+                        GameObj.stop();                
+                    }
+                }
+
+            }, 10);
+            GameObj.numberOfCannons--;  //cannon ball decreased after shooting one
+        }
+        GameObj.shoot = false;
+    }
+
+    //update new positions
+    myBird.newPos();
+    myBird.update();
+    cannonGun.update();
+    ctx = GameObj.context;
+    ctx.fillStyle = "black";
+    ctx.font="14px Verdana";
+    //calculate remaining time
+    timeRemaining = timeRemaining - 20/1000; //update method interval rate
+    ctx.fillText("Remaining Time: \n"+ parseInt(timeRemaining) + "s" ,10,20);
+    //show and update score
+    ctx.fillText("Current Score: "+ GameObj.score , GameObj.canvas.width - 130 , 20);
+    ctx.font="20px Verdana";
+    ctx.fillStyle = "white";
+    //remaining cannons
+    ctx.fillText(GameObj.numberOfCannons+"/10" , GameObj.canvas.width/2 - 130 , GameObj.canvas.height-15);
+    if(timeRemaining < 1 ){ //if time is over then end the game
+        GameObj.stop();
+        clearInterval(GameObj.shooter);
+    }
+}
+
+function collides(obj1, obj2){  //check hit, bird &cannon ball
+    if (obj1.x < obj2.x + obj2.width &&
+    obj1.x + obj1.width > obj2.x &&
+    obj1.y < obj2.y + obj2.height &&
+    obj1.y + obj1.height > obj2.y) return true;
+}
+
+function restartGame(){    
+    GameObj.clear();
+    GameObj.stop();
+    timeRemaining = 60;
+    GameObj.start();
+}
+
+function difficulty(e){         
+    if(e.innerHTML == "Easy"){
+        e.innerHTML = "Medium";
+        myBird.speedX *= 2;
+    }
+    else if(e.innerHTML == "Medium"){
+        e.innerHTML = "Hard";
+        myBird.speedX *= 2;
+    }
+    else{
+        e.innerHTML = "Easy";
+        myBird.speedX /= 4;
+    }
+}
+
+</script>
+<div style="text-align:right;width:600px;">
+    <span style="margin-right:50px;">Press any Key to Fire</span>
+  <button onclick="difficulty(this)" >Easy</button>
+  <button onclick="restartGame()">New Game</button>
+</div>
+
+</body>
+</html>
